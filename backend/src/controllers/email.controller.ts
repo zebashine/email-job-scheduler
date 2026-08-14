@@ -48,6 +48,15 @@ export async function getScheduledEmails(_req: Request, res: Response) {
   res.json(emails);
 }
 
+export async function getEmailById(req: Request, res: Response) {
+  const email = await prisma.emailJob.findUnique({ where: { id: req.params["id"] } });
+  if (!email) {
+    res.status(404).json({ error: "EmailJob not found" });
+    return;
+  }
+  res.json(email);
+}
+
 export async function getSentEmails(_req: Request, res: Response) {
   const emails = await prisma.emailJob.findMany({
     where: { status: "sent" },

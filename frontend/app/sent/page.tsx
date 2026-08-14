@@ -9,6 +9,7 @@ const POLL_INTERVAL_MS = 5000;
 
 export default function SentPage() {
   const [rows, setRows] = useState<EmailJob[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -27,6 +28,8 @@ export default function SentPage() {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load sent emails");
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -42,7 +45,7 @@ export default function SentPage() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Sent Emails</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sent Emails</h1>
           <p className="mt-1 text-sm text-slate-500">Jobs that have been successfully delivered.</p>
         </div>
         {lastUpdated && (
@@ -56,7 +59,13 @@ export default function SentPage() {
         </div>
       )}
 
-      <EmailTable rows={rows} dateColumn="sentAt" emptyMessage="No emails have been sent yet." />
+      {loading ? (
+        <div className="rounded-2xl border border-slate-200/70 bg-white p-10 text-center text-sm text-slate-400 shadow-sm">
+          Loading…
+        </div>
+      ) : (
+        <EmailTable rows={rows} dateColumn="sentAt" emptyMessage="No emails have been sent yet." />
+      )}
     </div>
   );
 }

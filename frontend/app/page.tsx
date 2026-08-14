@@ -40,7 +40,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
         <p className="mt-1 text-sm text-slate-500">
           Live overview of your email scheduling pipeline.
         </p>
@@ -53,13 +53,13 @@ export default function DashboardPage() {
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Scheduled" value={stats?.counts.scheduled ?? 0} accent="slate" />
+        <StatCard label="Scheduled" value={stats?.counts.scheduled ?? 0} accent="indigo" />
         <StatCard label="Sent" value={stats?.counts.sent ?? 0} accent="emerald" />
-        <StatCard label="Failed" value={stats?.counts.failed ?? 0} accent="red" />
+        <StatCard label="Failed" value={stats?.counts.failed ?? 0} accent="rose" />
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-medium text-slate-700">Scheduled vs. Sent (last 14 days)</h2>
+        <h2 className="mb-3 text-sm font-semibold text-slate-700">Scheduled vs. Sent (last 14 days)</h2>
         <ScheduledVsSentChart data={stats?.timeSeries ?? []} />
       </div>
     </div>

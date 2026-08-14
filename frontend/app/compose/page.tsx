@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getDefaultSender, scheduleEmail } from "@/lib/api";
+import { getSenders, scheduleEmail } from "@/lib/api";
 import { parseRecipientsFromCsv } from "@/lib/csv";
+import type { Sender } from "@/lib/types";
+import { useToast } from "@/components/Toast";
 
 interface RecipientResult {
   recipient: string;
@@ -11,8 +13,9 @@ interface RecipientResult {
 }
 
 export default function ComposePage() {
+  const { showToast } = useToast();
+  const [senders, setSenders] = useState<Sender[]>([]);
   const [senderId, setSenderId] = useState<string | null>(null);
-  const [senderEmail, setSenderEmail] = useState<string | null>(null);
   const [senderError, setSenderError] = useState<string | null>(null);
 
   const [subject, setSubject] = useState("");
@@ -32,13 +35,20 @@ export default function ComposePage() {
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
-    getDefaultSender()
-      .then((sender) => {
-        setSenderId(sender.id);
-        setSenderEmail(sender.email);
+    getSenders()
+      .then(async (list) => {
+        if (list.length === 0) {
+          // No senders yet — auto-provision the shared Ethereal test inbox so
+          // the form isn't a dead end on first run.
+          const { createSender } = await import("@/lib/api");
+          const created = await createSender({ mode: "ethereal" });
+          list = [created];
+        }
+        setSenders(list);
+        setSenderId(list[0]?.id ?? null);
       })
       .catch((err) => {
-        setSenderError(err instanceof Error ? err.message : "Failed to load sender");
+        setSenderError(err instanceof Error ? err.message : "Failed to load senders");
       });
   }, []);
 
@@ -127,8 +137,14 @@ export default function ComposePage() {
 
     setResults(batchResults);
     setSubmitting(false);
-    if (batchResults.every((r) => r.success)) {
+
+    const successCount = batchResults.filter((r) => r.success).length;
+    const failureCount = batchResults.length - successCount;
+    if (failureCount === 0) {
+      showToast(`${successCount} email${successCount === 1 ? "" : "s"} scheduled successfully.`, "success");
       resetForm();
+    } else {
+      showToast(`${successCount} scheduled, ${failureCount} failed. Check details below.`, "error");
     }
   }
 
@@ -138,24 +154,46 @@ export default function ComposePage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Compose New Email</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Compose New Email</h1>
         <p className="mt-1 text-sm text-slate-500">
           Upload a CSV of recipients and schedule a staggered send.
         </p>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-        Sending from:{" "}
+      <div className="rounded-xl border border-indigo-100 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+        <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-indigo-500">
+          Sending from
+        </label>
         {senderError ? (
-          <span className="text-red-600">{senderError}</span>
-        ) : senderEmail ? (
-          <span className="font-medium text-slate-900">{senderEmail}</span>
+          <span className="text-rose-600">{senderError}</span>
+        ) : senders.length > 0 ? (
+          <select
+            value={senderId ?? ""}
+            onChange={(e) => setSenderId(e.target.value)}
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            {senders.map((sender) => (
+              <option key={sender.id} value={sender.id}>
+                {sender.email}
+              </option>
+            ))}
+          </select>
         ) : (
           <span className="text-slate-400">loading…</span>
         )}
+        <p className="mt-1.5 text-xs text-slate-400">
+          Need a different account?{" "}
+          <a href="/senders" className="font-medium text-indigo-600 hover:underline">
+            Add a sender
+          </a>
+          .
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-5 rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm"
+      >
         <div>
           <label className="block text-sm font-medium text-slate-700" htmlFor="subject">
             Subject
@@ -165,7 +203,7 @@ export default function ComposePage() {
             type="text"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             placeholder="Your weekly update"
           />
         </div>
@@ -179,26 +217,26 @@ export default function ComposePage() {
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={5}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             placeholder="Write the email content here…"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-slate-700" htmlFor="csv">
-            Recipients (CSV)
+            Recipients (CSV or TXT)
           </label>
           <input
             id="csv"
             ref={fileInputRef}
             type="file"
-            accept=".csv,text/csv"
+            accept=".csv,text/csv,.txt,text/plain"
             onChange={handleFileChange}
-            className="mt-1 w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-700"
+            className="mt-1 w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-gradient-to-r file:from-indigo-600 file:to-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:opacity-90"
           />
-          {csvError && <p className="mt-1 text-xs text-red-600">{csvError}</p>}
+          {csvError && <p className="mt-1 text-xs text-rose-600">{csvError}</p>}
           {csvFileName && recipients.length > 0 && (
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-emerald-600">
               {csvFileName}: {recipients.length} recipient{recipients.length === 1 ? "" : "s"} loaded
             </p>
           )}
@@ -214,7 +252,7 @@ export default function ComposePage() {
               type="datetime-local"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
           <div>
@@ -227,7 +265,7 @@ export default function ComposePage() {
               min={0}
               value={delaySeconds}
               onChange={(e) => setDelaySeconds(Number(e.target.value))}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
           <div>
@@ -240,13 +278,13 @@ export default function ComposePage() {
               min={1}
               value={hourlyLimit}
               onChange={(e) => setHourlyLimit(Number(e.target.value))}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
         </div>
 
         {formError && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {formError}
           </div>
         )}
@@ -260,19 +298,19 @@ export default function ComposePage() {
         <button
           type="submit"
           disabled={submitting || !senderId}
-          className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-indigo-200 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Scheduling…" : `Schedule ${recipients.length || ""} Email${recipients.length === 1 ? "" : "s"}`}
         </button>
       </form>
 
       {results && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200/70 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium text-slate-900">
             {successCount} scheduled successfully{failureCount > 0 ? `, ${failureCount} failed` : ""}
           </p>
           {failureCount > 0 && (
-            <ul className="mt-3 space-y-1 text-sm text-red-600">
+            <ul className="mt-3 space-y-1 text-sm text-rose-600">
               {results
                 .filter((r) => !r.success)
                 .map((r) => (

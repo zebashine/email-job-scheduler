@@ -22,16 +22,16 @@ export function ScheduledVsSentChart({ data }: { data: EmailStatsTimeSeriesPoint
   }
 
   return (
-    <div className="h-72 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="h-72 rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#64748b" }} />
           <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#64748b" }} />
-          <Tooltip />
+          <Tooltip contentStyle={{ borderRadius: 12, borderColor: "#e2e8f0" }} />
           <Legend />
-          <Line type="monotone" dataKey="scheduled" name="Scheduled" stroke="#2563eb" strokeWidth={2} />
-          <Line type="monotone" dataKey="sent" name="Sent" stroke="#059669" strokeWidth={2} />
+          <Line type="monotone" dataKey="scheduled" name="Scheduled" stroke="#6366f1" strokeWidth={2.5} dot={false} />
+          <Line type="monotone" dataKey="sent" name="Sent" stroke="#10b981" strokeWidth={2.5} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

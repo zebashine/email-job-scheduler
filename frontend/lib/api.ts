@@ -1,4 +1,11 @@
-import type { DefaultSender, EmailJob, EmailStats, ScheduleEmailInput } from "./types";
+import type {
+  CreateSenderInput,
+  DefaultSender,
+  EmailJob,
+  EmailStats,
+  ScheduleEmailInput,
+  Sender,
+} from "./types";
 import { getToken } from "./auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
@@ -37,6 +44,17 @@ export function getEmailStats(): Promise<EmailStats> {
 
 export function getDefaultSender(): Promise<DefaultSender> {
   return apiFetch<DefaultSender>("/api/senders/default");
+}
+
+export function getSenders(): Promise<Sender[]> {
+  return apiFetch<Sender[]>("/api/senders");
+}
+
+export function createSender(input: CreateSenderInput): Promise<Sender> {
+  return apiFetch<Sender>("/api/senders", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export function scheduleEmail(input: ScheduleEmailInput): Promise<EmailJob> {

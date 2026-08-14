@@ -36,5 +36,11 @@
   "devDependencies": {
     "prisma": "^7.9.1",
     "tsx": "^4.23.12"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.9.1": true,
+    "esbuild@0.28.2": true,
+    "msgpackr-extract@3.0.4": true,
+    "prisma@7.9.1": true
   }
 }

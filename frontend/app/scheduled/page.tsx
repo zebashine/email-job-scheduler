@@ -9,6 +9,7 @@ const POLL_INTERVAL_MS = 5000;
 
 export default function ScheduledPage() {
   const [rows, setRows] = useState<EmailJob[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -27,6 +28,8 @@ export default function ScheduledPage() {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load scheduled emails");
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -42,7 +45,7 @@ export default function ScheduledPage() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Scheduled Emails</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Scheduled Emails</h1>
           <p className="mt-1 text-sm text-slate-500">
             Jobs that are scheduled, queued, or currently being sent.
           </p>
@@ -58,7 +61,13 @@ export default function ScheduledPage() {
         </div>
       )}
 
-      <EmailTable rows={rows} dateColumn="scheduledAt" emptyMessage="No scheduled emails yet." />
+      {loading ? (
+        <div className="rounded-2xl border border-slate-200/70 bg-white p-10 text-center text-sm text-slate-400 shadow-sm">
+          Loading…
+        </div>
+      ) : (
+        <EmailTable rows={rows} dateColumn="scheduledAt" emptyMessage="No scheduled emails yet." />
+      )}
     </div>
   );
 }

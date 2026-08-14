@@ -41,11 +41,13 @@ Frontend (Next.js)  <-- REST API (JSON) -->  Backend (Express + TypeScript)
 - Idempotent job processing (BullMQ `jobId` tied 1:1 to the `EmailJob` id, plus a status guard)
 - Retry with exponential backoff on send failure (3 attempts) before marking a job `failed`
 - Google OAuth login (`/auth/google`, `/auth/google/callback`, `/auth/me`) issuing a JWT
+- Multi-sender support: `GET/POST /api/senders` to list and add senders (real SMTP creds or auto-provisioned Ethereal inboxes); SMTP passwords are never returned to the frontend
 - Health check endpoint (`/health`)
 
 **Frontend**
 - Dashboard with live counts (scheduled / sent / failed) and a scheduled-vs-sent chart, polling every 5s
-- Compose page: subject, body, CSV recipient upload, start time, delay between sends, hourly limit
+- Compose page: sender selector, subject, body, CSV recipient upload, start time, delay between sends, hourly limit
+- Senders page: add a real SMTP account or auto-provision a fresh Ethereal test inbox, view all connected senders
 - Scheduled and Sent views with status badges, loading and empty states
 - Google sign-in button / signed-in user display / logout, wired to the backend OAuth flow
 

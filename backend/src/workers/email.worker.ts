@@ -61,9 +61,11 @@ async function processEmailJob(job: Job<EmailJobPayload>, token?: string) {
   }
 }
 
+const WORKER_CONCURRENCY = Number(process.env["WORKER_CONCURRENCY"] ?? 5);
+
 export const emailWorker = new Worker<EmailJobPayload>(EMAIL_QUEUE_NAME, processEmailJob, {
   connection: redis,
-  concurrency: 5,
+  concurrency: WORKER_CONCURRENCY,
 });
 
 emailWorker.on("failed", (job, err) => {

@@ -36,6 +36,24 @@ export interface DefaultSender {
   email: string;
 }
 
+export interface Sender {
+  id: string;
+  email: string;
+  smtpHost: string;
+  smtpPort: number;
+}
+
+export type CreateSenderInput =
+  | { mode: "ethereal" }
+  | {
+      mode: "manual";
+      email: string;
+      smtpHost: string;
+      smtpPort: number;
+      username: string;
+      password: string;
+    };
+
 export interface ScheduleEmailInput {
   senderId: string;
   recipient: string;
